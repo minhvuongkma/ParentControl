@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">ParentControl</string>
+    <string name="device_admin_label">Parental Control Admin</string>
+    <string name="device_admin_description">Enables lockdown features for parental control.</string>
 </resources>
