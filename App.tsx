@@ -1,109 +1,238 @@
-import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
-import { StatusBar, View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { enableScreens } from 'react-native-screens';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AppNavigator } from './src/navigation/AppNavigator';
+import {
+  StatusBar,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Modal,
+  SafeAreaView
+} from 'react-native';
 import { AppLockBridge } from './src/services/AppLockBridge';
 import { StorageService } from './src/services/StorageService';
+import HomeScreen from './src/screens/HomeScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
-enableScreens();
+// Simple icons
+const LockIcon = () => <Text style={{ fontSize: 24 }}>🔒</Text>;
+
+type Screen = 'pinSetup' | 'home' | 'settings';
+
+// Mock navigation object for screens
+const createMockNavigation = (navigate: (screen: string) => void) => ({
+  navigate,
+  goBack: () => navigate('home'),
+  setOptions: () => { },
+  addListener: () => ({ remove: () => { } }),
+});
 
 function App() {
-  const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [hasPin, setHasPin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const initApp = async () => {
+    const init = async () => {
       try {
-        // Start the background service on app launch
         AppLockBridge.startLockingService();
+        const pin = await StorageService.getPIN();
+        setHasPin(!!pin);
 
-        // Sync initial state to native
-        const isLocked = StorageService.getIsLocked();
-        const whitelist = StorageService.getWhitelist();
-        const timerEndTime = await AppLockBridge.getTimerEndTime();
-
-        AppLockBridge.updateLockStatus(isLocked);
-        AppLockBridge.updateWhitelist(whitelist);
-        AppLockBridge.updateNotificationSetting(StorageService.getNotificationTimerEnabled());
-        AppLockBridge.updateFloatingSetting(StorageService.getFloatingTimerEnabled());
-        AppLockBridge.updateFloatingPosition(StorageService.getFloatingPosition());
-        // timerEndTime is already on Native side if we use bridge, 
-        // but let's ensure it's synced if it exists in MMKV (fallback)
-        if (timerEndTime) {
-          AppLockBridge.updateTimerEndTime(timerEndTime);
+        // Synchronize PIN to native side if it exists
+        if (pin) {
+          await AppLockBridge.updatePIN(pin);
+        } else {
+          setCurrentScreen('pinSetup');
         }
-      } catch (e: any) {
-        console.error('Initialization error:', e);
-        setHasError(true);
-        setErrorMessage(e.message);
+
+        setIsLoading(false);
+      } catch (e) {
+        console.error('Init error:', e);
+        setIsLoading(false);
       }
     };
-
-    initApp();
+    init();
   }, []);
 
-  if (hasError) {
+  const handleNavigate = (screen: string) => {
+    if (screen === 'Home') setCurrentScreen('home');
+    else if (screen === 'Settings') setCurrentScreen('settings');
+  };
+
+  if (isLoading) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorTitle}>App Error</Text>
-        <ScrollView style={styles.errorScroll}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </ScrollView>
-        <TouchableOpacity style={styles.retryButton} onPress={() => setHasError(false)}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <StatusBar barStyle="light-content" backgroundColor="#007AFF" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </SafeAreaView>
     );
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <StatusBar barStyle="light-content" backgroundColor="#007AFF" />
-        <AppNavigator />
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#007AFF" />
+
+      {currentScreen === 'pinSetup' && (
+        <PinSetupScreen onComplete={() => {
+          setHasPin(true);
+          setCurrentScreen('home');
+        }} />
+      )}
+
+      {currentScreen === 'home' && (
+        <HomeScreen navigation={createMockNavigation(handleNavigate) as any} route={{} as any} />
+      )}
+
+      {currentScreen === 'settings' && (
+        <SettingsScreen navigation={createMockNavigation(handleNavigate) as any} route={{} as any} />
+      )}
+    </SafeAreaView>
+  );
+}
+
+// PIN Setup Screen
+function PinSetupScreen({ onComplete }: { onComplete: () => void }) {
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [step, setStep] = useState<'enter' | 'confirm'>('enter');
+
+  const handleContinue = async () => {
+    if (step === 'enter') {
+      if (pin.length < 4) {
+        Alert.alert('Error', 'PIN must be at least 4 digits');
+        return;
+      }
+      setStep('confirm');
+    } else {
+      if (pin !== confirmPin) {
+        Alert.alert('Error', 'PINs do not match');
+        setConfirmPin('');
+        return;
+      }
+      await StorageService.setPIN(pin);
+      await AppLockBridge.updatePIN(pin);
+      Alert.alert('Success', 'PIN set successfully!');
+      onComplete();
+    }
+  };
+
+  return (
+    <ScrollView style={styles.screen}>
+      <View style={styles.setupContainer}>
+        <LockIcon />
+        <Text style={styles.setupTitle}>Set Up Parental PIN</Text>
+        <Text style={styles.setupSubtitle}>
+          {step === 'enter'
+            ? 'Create a PIN to protect settings'
+            : 'Confirm your PIN'}
+        </Text>
+
+        <TextInput
+          style={styles.pinSetupInput}
+          value={step === 'enter' ? pin : confirmPin}
+          onChangeText={step === 'enter' ? setPin : setConfirmPin}
+          secureTextEntry
+          keyboardType="numeric"
+          placeholder="Enter PIN"
+          maxLength={6}
+          autoFocus
+        />
+
+        <TouchableOpacity style={styles.primaryButton} onPress={handleContinue}>
+          <Text style={styles.primaryButtonText}>
+            {step === 'enter' ? 'Continue' : 'Confirm'}
+          </Text>
+        </TouchableOpacity>
+
+        {step === 'confirm' && (
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => {
+              setStep('enter');
+              setConfirmPin('');
+            }}
+          >
+            <Text style={styles.secondaryButtonText}>Back</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  errorContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  screen: {
+    flex: 1,
+    padding: 20,
+  },
+  setupContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#FFF',
   },
-  errorTitle: {
+  setupTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF3B30',
+    color: '#333',
+    marginTop: 20,
     marginBottom: 10,
   },
-  errorText: {
+  setupSubtitle: {
     fontSize: 16,
-    color: '#333',
+    color: '#666',
+    marginBottom: 30,
     textAlign: 'center',
-    fontFamily: 'monospace',
   },
-  errorScroll: {
-    maxHeight: '60%',
+  pinSetupInput: {
     width: '100%',
+    height: 60,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 12,
+    textAlign: 'center',
+    fontSize: 24,
+    letterSpacing: 10,
     marginBottom: 20,
   },
-  retryButton: {
+  primaryButton: {
     backgroundColor: '#007AFF',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
   },
-  retryText: {
+  primaryButtonText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  secondaryButton: {
+    marginTop: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+  },
+  secondaryButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
   },
 });
 

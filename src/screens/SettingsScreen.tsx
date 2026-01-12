@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert } f
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { AppLockBridge } from '../services/AppLockBridge';
-import { Shield, Layout, Settings as SettingsIcon, AppWindow, Lock, Clock } from 'lucide-react-native';
+import { Shield, Layout, Settings as SettingsIcon, AppWindow, Lock, Clock, ArrowLeft } from '../components/SimpleIcons';
 import { StorageService } from '../services/StorageService';
 import { Modal, TextInput } from 'react-native';
 
@@ -18,16 +18,14 @@ const POSITIONS = [
 
 const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     const [permissions, setPermissions] = useState({
-        usage: false,
         overlay: false,
         admin: false,
     });
 
     const checkPermissions = async () => {
-        const usage = await AppLockBridge.hasUsageStatsPermission();
         const overlay = await AppLockBridge.hasOverlayPermission();
         const admin = await AppLockBridge.isDeviceAdminActive();
-        setPermissions({ usage, overlay, admin });
+        setPermissions({ overlay, admin });
     };
 
     const [floatingEnabled, setFloatingEnabled] = useState(StorageService.getFloatingTimerEnabled());
@@ -55,6 +53,9 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 
     const [showPinModal, setShowPinModal] = useState(false);
     const [pinInput, setPinInput] = useState('');
+    const [showChangePinModal, setShowChangePinModal] = useState(false);
+    const [newPin, setNewPin] = useState('');
+    const [confirmNewPin, setConfirmNewPin] = useState('');
 
     const handlePINChangeRequest = () => {
         setPinInput('');
@@ -66,11 +67,31 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         if (isValid) {
             setShowPinModal(false);
             setPinInput('');
-            navigation.navigate('Login', { isSetup: true });
+            setNewPin('');
+            setConfirmNewPin('');
+            setShowChangePinModal(true);
         } else {
             Alert.alert('Error', 'Incorrect PIN');
             setPinInput('');
         }
+    };
+
+    const handleSaveNewPin = async () => {
+        if (newPin.length < 4) {
+            Alert.alert('Error', 'PIN must be at least 4 digits');
+            return;
+        }
+        if (newPin !== confirmNewPin) {
+            Alert.alert('Error', 'PINs do not match');
+            setConfirmNewPin('');
+            return;
+        }
+        await StorageService.setPIN(newPin);
+        await AppLockBridge.updatePIN(newPin);
+        setShowChangePinModal(false);
+        setNewPin('');
+        setConfirmNewPin('');
+        Alert.alert('Success', 'PIN changed successfully!');
     };
 
     const PermissionItem = ({ title, status, onPress, icon: Icon }: any) => (
@@ -90,14 +111,16 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
         <ScrollView style={styles.container}>
+            <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.navigate('Home')}
+            >
+                <ArrowLeft size={24} color="#007AFF" />
+                <Text style={styles.backButtonText}>Back to Home</Text>
+            </TouchableOpacity>
+
             <Text style={styles.sectionTitle}>Permissions</Text>
             <View style={styles.card}>
-                <PermissionItem
-                    title="Usage Access"
-                    status={permissions.usage}
-                    onPress={() => AppLockBridge.requestUsageStatsPermission()}
-                    icon={Layout}
-                />
                 <PermissionItem
                     title="Overlay Permission"
                     status={permissions.overlay}
@@ -114,14 +137,6 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
 
             <Text style={styles.sectionTitle}>App Configuration</Text>
             <View style={styles.card}>
-                <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('Whitelist')}>
-                    <View style={styles.itemLeft}>
-                        <AppWindow size={24} color="#007AFF" />
-                        <Text style={styles.itemTitle}>Manage Whitelist</Text>
-                    </View>
-                    <Text style={styles.chevron}>&gt;</Text>
-                </TouchableOpacity>
-
                 <TouchableOpacity style={styles.item} onPress={handlePINChangeRequest}>
                     <View style={styles.itemLeft}>
                         <SettingsIcon size={24} color="#007AFF" />
@@ -207,6 +222,59 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
             </Modal>
 
+            <Modal
+                visible={showChangePinModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowChangePinModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Lock size={40} color="#007AFF" style={{ marginBottom: 15 }} />
+                        <Text style={styles.modalTitle}>Enter New PIN</Text>
+                        <TextInput
+                            style={styles.pinInput}
+                            value={newPin}
+                            onChangeText={setNewPin}
+                            secureTextEntry
+                            keyboardType="numeric"
+                            placeholder="New PIN"
+                            placeholderTextColor="#CCC"
+                            maxLength={6}
+                            autoFocus
+                        />
+                        <TextInput
+                            style={styles.pinInput}
+                            value={confirmNewPin}
+                            onChangeText={setConfirmNewPin}
+                            secureTextEntry
+                            keyboardType="numeric"
+                            placeholder="Confirm PIN"
+                            placeholderTextColor="#CCC"
+                            maxLength={6}
+                        />
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.cancelBtn]}
+                                onPress={() => {
+                                    setShowChangePinModal(false);
+                                    setNewPin('');
+                                    setConfirmNewPin('');
+                                }}
+                            >
+                                <Text style={{ color: '#666' }}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.confirmBtn]}
+                                onPress={handleSaveNewPin}
+                            >
+                                <Text style={{ color: '#FFF' }}>Save</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
         </ScrollView>
     );
 };
@@ -216,6 +284,18 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F5F7FA',
         padding: 15,
+    },
+    backButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        marginBottom: 10,
+    },
+    backButtonText: {
+        fontSize: 16,
+        color: '#007AFF',
+        marginLeft: 10,
+        fontWeight: '600',
     },
     sectionTitle: {
         fontSize: 16,
