@@ -5,14 +5,14 @@ import { NavigationContainer } from '@react-navigation/native';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import WhitelistScreen from '../screens/WhitelistScreen';
+import DeviceAdminInstructions from '../screens/DeviceAdminInstructions';
 import { StorageService } from '../services/StorageService';
 
 export type RootStackParamList = {
     Login: { isSetup?: boolean };
     Home: undefined;
     Settings: undefined;
-    Whitelist: undefined;
+    DeviceAdminInstructions: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -52,9 +52,9 @@ export const AppNavigator = () => {
                     options={{ title: 'Settings' }}
                 />
                 <Stack.Screen
-                    name="Whitelist"
-                    component={WhitelistScreen}
-                    options={{ title: 'Manage Whitelist' }}
+                    name="DeviceAdminInstructions"
+                    component={DeviceAdminInstructions}
+                    options={{ title: 'Device Admin Setup' }}
                 />
             </Stack.Navigator>
         </NavigationContainer>

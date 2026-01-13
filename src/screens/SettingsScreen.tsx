@@ -38,7 +38,13 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
             setFloatingEnabled(StorageService.getFloatingTimerEnabled());
             setFloatingPos(StorageService.getFloatingPosition());
         });
-        return unsubscribe;
+        return () => {
+            if (typeof unsubscribe === 'function') {
+                unsubscribe();
+            } else if (unsubscribe && (unsubscribe as any).remove) {
+                (unsubscribe as any).remove();
+            }
+        };
     }, [navigation]);
 
     const toggleFloating = (value: boolean) => {
@@ -110,79 +116,77 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     );
 
     return (
-        <ScrollView style={styles.container}>
-            <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.navigate('Home')}
-            >
-                <ArrowLeft size={24} color="#007AFF" />
-                <Text style={styles.backButtonText}>Back to Home</Text>
-            </TouchableOpacity>
+        <View style={styles.mainWrapper}>
+            <ScrollView style={styles.container}>
 
-            <Text style={styles.sectionTitle}>Permissions</Text>
-            <View style={styles.card}>
-                <PermissionItem
-                    title="Overlay Permission"
-                    status={permissions.overlay}
-                    onPress={() => AppLockBridge.requestOverlayPermission()}
-                    icon={AppWindow}
-                />
-                <PermissionItem
-                    title="Device Admin"
-                    status={permissions.admin}
-                    onPress={() => AppLockBridge.requestDeviceAdmin()}
-                    icon={Shield}
-                />
-            </View>
 
-            <Text style={styles.sectionTitle}>App Configuration</Text>
-            <View style={styles.card}>
-                <TouchableOpacity style={styles.item} onPress={handlePINChangeRequest}>
-                    <View style={styles.itemLeft}>
-                        <SettingsIcon size={24} color="#007AFF" />
-                        <Text style={styles.itemTitle}>Change Parent PIN</Text>
-                    </View>
-                    <Text style={styles.chevron}>&gt;</Text>
-                </TouchableOpacity>
-            </View>
-
-            <Text style={styles.sectionTitle}>Timer Display Settings</Text>
-            <View style={styles.card}>
-                <View style={styles.item}>
-                    <View style={styles.itemLeft}>
-                        <Clock size={24} color="#007AFF" />
-                        <Text style={styles.itemTitle}>Floating Timer Overlay</Text>
-                    </View>
-                    <Switch
-                        value={floatingEnabled}
-                        onValueChange={toggleFloating}
-                        trackColor={{ false: '#D1D1D6', true: '#34C759' }}
+                <Text style={styles.sectionTitle}>Permissions</Text>
+                <View style={styles.card}>
+                    <PermissionItem
+                        title="Overlay Permission"
+                        status={permissions.overlay}
+                        onPress={() => AppLockBridge.requestOverlayPermission()}
+                        icon={AppWindow}
+                    />
+                    <PermissionItem
+                        title="Device Admin"
+                        status={permissions.admin}
+                        onPress={() => navigation.navigate('DeviceAdminInstructions')}
+                        icon={Shield}
                     />
                 </View>
 
-                {floatingEnabled && (
-                    <View style={styles.positionSelector}>
-                        <Text style={styles.selectorLabel}>Timer Position:</Text>
-                        <View style={styles.positionGrid}>
-                            {POSITIONS.map((pos) => (
-                                <TouchableOpacity
-                                    key={pos.value}
-                                    style={[
-                                        styles.posBadge,
-                                        floatingPos === pos.value && styles.posBadgeActive
-                                    ]}
-                                    onPress={() => changePosition(pos.value)}
-                                >
-                                    <Text style={[
-                                        styles.posBadgeText,
-                                        floatingPos === pos.value && styles.posBadgeTextActive
-                                    ]}>{pos.label}</Text>
-                                </TouchableOpacity>
-                            ))}
+                <Text style={styles.sectionTitle}>App Configuration</Text>
+                <View style={styles.card}>
+                    <TouchableOpacity style={styles.item} onPress={handlePINChangeRequest}>
+                        <View style={styles.itemLeft}>
+                            <SettingsIcon size={24} color="#007AFF" />
+                            <Text style={styles.itemTitle}>Change Parent PIN</Text>
                         </View>
+                        <Text style={styles.chevron}>&gt;</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <Text style={styles.sectionTitle}>Timer Display Settings</Text>
+                <View style={styles.card}>
+                    <View style={styles.item}>
+                        <View style={styles.itemLeft}>
+                            <Clock size={24} color="#007AFF" />
+                            <Text style={styles.itemTitle}>Floating Timer Overlay</Text>
+                        </View>
+                        <Switch
+                            value={floatingEnabled}
+                            onValueChange={toggleFloating}
+                            trackColor={{ false: '#D1D1D6', true: '#34C759' }}
+                        />
                     </View>
-                )}
-            </View>
+
+                    {floatingEnabled && (
+                        <View style={styles.positionSelector}>
+                            <Text style={styles.selectorLabel}>Timer Position:</Text>
+                            <View style={styles.positionGrid}>
+                                {POSITIONS.map((pos) => (
+                                    <TouchableOpacity
+                                        key={pos.value}
+                                        style={[
+                                            styles.posBadge,
+                                            floatingPos === pos.value && styles.posBadgeActive
+                                        ]}
+                                        onPress={() => changePosition(pos.value)}
+                                    >
+                                        <Text style={[
+                                            styles.posBadgeText,
+                                            floatingPos === pos.value && styles.posBadgeTextActive
+                                        ]}>{pos.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                    )}
+                </View>
+
+                <View style={{ height: 20 }} />
+            </ScrollView>
 
             <Modal
                 visible={showPinModal}
@@ -275,27 +279,44 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
             </Modal>
 
-        </ScrollView>
+            <View style={styles.footer}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => navigation.navigate('Home')}
+                >
+                    <ArrowLeft size={24} color="#007AFF" />
+                    <Text style={styles.backButtonText}>Back to Home</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    mainWrapper: {
         flex: 1,
         backgroundColor: '#F5F7FA',
-        padding: 15,
+    },
+    container: {
+        flex: 1,
     },
     backButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 15,
-        marginBottom: 10,
+        justifyContent: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 25,
+        backgroundColor: '#FFF',
+        borderWidth: 2,
+        borderColor: '#007AFF',
+        borderRadius: 12,
+        marginHorizontal: 10,
     },
     backButtonText: {
-        fontSize: 16,
+        fontSize: 18,
         color: '#007AFF',
         marginLeft: 10,
-        fontWeight: '600',
+        fontWeight: 'bold',
     },
     sectionTitle: {
         fontSize: 16,
@@ -390,6 +411,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#F0F0F0',
         borderRadius: 10,
         textAlign: 'center',
+        paddingHorizontal: 0,
         fontSize: 24,
         marginBottom: 25,
         color: '#000',
@@ -445,6 +467,17 @@ const styles = StyleSheet.create({
     posBadgeTextActive: {
         color: '#FFF',
         fontWeight: 'bold',
+    },
+    footer: {
+        padding: 20,
+        backgroundColor: '#FFF',
+        borderTopWidth: 1,
+        borderTopColor: '#E5E5EA',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
     },
 });
 

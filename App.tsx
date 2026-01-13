@@ -15,18 +15,19 @@ import { AppLockBridge } from './src/services/AppLockBridge';
 import { StorageService } from './src/services/StorageService';
 import HomeScreen from './src/screens/HomeScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import DeviceAdminInstructions from './src/screens/DeviceAdminInstructions';
 
 // Simple icons
 const LockIcon = () => <Text style={{ fontSize: 24 }}>🔒</Text>;
 
-type Screen = 'pinSetup' | 'home' | 'settings';
+type Screen = 'pinSetup' | 'home' | 'settings' | 'deviceAdminInstructions';
 
 // Mock navigation object for screens
-const createMockNavigation = (navigate: (screen: string) => void) => ({
+const createMockNavigation = (navigate: (screen: string) => void, goBackScreen: string = 'home') => ({
   navigate,
-  goBack: () => navigate('home'),
+  goBack: () => navigate(goBackScreen),
   setOptions: () => { },
-  addListener: () => ({ remove: () => { } }),
+  addListener: () => () => { },
 });
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
   const handleNavigate = (screen: string) => {
     if (screen === 'Home') setCurrentScreen('home');
     else if (screen === 'Settings') setCurrentScreen('settings');
+    else if (screen === 'DeviceAdminInstructions') setCurrentScreen('deviceAdminInstructions');
   };
 
   if (isLoading) {
@@ -87,7 +89,11 @@ function App() {
       )}
 
       {currentScreen === 'settings' && (
-        <SettingsScreen navigation={createMockNavigation(handleNavigate) as any} route={{} as any} />
+        <SettingsScreen navigation={createMockNavigation(handleNavigate, 'Home') as any} route={{} as any} />
+      )}
+
+      {currentScreen === 'deviceAdminInstructions' && (
+        <DeviceAdminInstructions navigation={createMockNavigation(handleNavigate, 'Settings') as any} route={{} as any} />
       )}
     </SafeAreaView>
   );
@@ -208,8 +214,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     borderRadius: 12,
     textAlign: 'center',
+    paddingHorizontal: 0,
     fontSize: 24,
-    letterSpacing: 10,
     marginBottom: 20,
   },
   primaryButton: {

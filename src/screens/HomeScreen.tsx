@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, Modal, AppState } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { StorageService } from '../services/StorageService';
 import { AppLockBridge } from '../services/AppLockBridge';
-import { Settings, Shield, ShieldOff, Play, Square, Activity, Lock, Unlock } from 'lucide-react-native';
+import { Settings, Shield, ShieldOff, Play, Lock, Unlock } from '../components/SimpleIcons';
 
 type Props = StackScreenProps<RootStackParamList, 'Home'>;
 
@@ -78,14 +78,25 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             }
         }, 1000);
 
-        // Occasional sync from native (every 10s)
-        const syncInterval = setInterval(syncWithNative, 10000);
+        // Occasional sync from native (every 5s)
+        const syncInterval = setInterval(syncWithNative, 5000);
+
+        // Sync when app comes to foreground or focus
+        const focusUnsubscribe = navigation.addListener('focus', syncWithNative);
+
+        const appStateListener = AppState.addEventListener('change', nextAppState => {
+            if (nextAppState === 'active') {
+                syncWithNative();
+            }
+        });
 
         return () => {
             clearInterval(interval);
             clearInterval(syncInterval);
+            focusUnsubscribe();
+            appStateListener.remove();
         };
-    }, [syncWithNative, timeLeft]);
+    }, [syncWithNative, timeLeft, navigation]);
 
     const executeStartTimer = async (minutes: number) => {
         isUpdatingRef.current = true;
@@ -105,7 +116,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         // Longer protection
         setTimeout(() => {
             isUpdatingRef.current = false;
-        }, 5000);
+        }, 10000);
     };
 
     const executeUnlock = async () => {
@@ -120,7 +131,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
         setTimeout(() => {
             isUpdatingRef.current = false;
-        }, 5000);
+        }, 10000);
     };
 
     const executeLock = async () => {
@@ -136,7 +147,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
         setTimeout(() => {
             isUpdatingRef.current = false;
-        }, 5000);
+        }, 10000);
     };
 
     const handleTimerRequest = (minutes: number) => {
@@ -250,19 +261,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
             </View>
 
-            <View style={styles.controls}>
-                <Text style={styles.sectionTitle}>Service Control</Text>
-                <TouchableOpacity
-                    style={styles.serviceControlBtn}
-                    onPress={() => {
-                        AppLockBridge.startLockingService();
-                        AppLockBridge.minimizeApp();
-                    }}
-                >
-                    <Activity color="#FFF" />
-                    <Text style={styles.actionButtonText}>Start Background Service</Text>
-                </TouchableOpacity>
-            </View>
+
 
             <TouchableOpacity
                 style={styles.settingsButton}
@@ -494,8 +493,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#F0F0F0',
         borderRadius: 10,
         textAlign: 'center',
+        paddingHorizontal: 0,
         fontSize: 24,
-        letterSpacing: 10,
         marginBottom: 25,
         color: '#000',
     },

@@ -206,8 +206,9 @@ class AppLockService : Service() {
         // 2. Determine if we should be locked
         val shouldLock = isLocked || (timerEndTime > 0 && currentTime >= timerEndTime)
         
-        // Grace period check: If we are in grace period, treat as "not blocking overlay" (but native lock might still apply if we wanted, but let's relax both for unlocking)
-        val inGracePeriod = gracePeriodEndTime > currentTime
+        // Grace period check: If we are in grace period, treat as "not blocking overlay"
+        val bridgeGraceEndTime = sharedPreferences.getLong("bridgeGraceEndTime", 0L)
+        val inGracePeriod = bridgeGraceEndTime > currentTime
 
         if (shouldLock) {
             // Update state to ensure consistency if timer just expired
@@ -254,7 +255,6 @@ class AppLockService : Service() {
                 sharedPreferences.edit().putBoolean("hasLockedSession", false).apply()
             }
             hideBlockerOverlay()
-            gracePeriodEndTime = 0L // Reset grace period on successful unlock
         }
     }
 
@@ -313,8 +313,10 @@ class AppLockService : Service() {
                     
                     if (isDefaultRescue || isCorrectPin) {
                         // CORRECT PIN -> UNLOCK
-                        // Set grace period to 10 seconds to prevent immediate re-locking
-                        gracePeriodEndTime = System.currentTimeMillis() + 10000L
+                        // Set grace period to 20 seconds to prevent immediate re-locking
+                        sharedPreferences.edit()
+                            .putLong("bridgeGraceEndTime", System.currentTimeMillis() + 20000L)
+                            .apply()
                         
                         // Use commit() here to ensure immediate write to disk before we proceed
                         sharedPreferences.edit()
