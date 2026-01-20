@@ -45,16 +45,15 @@ export const AppLockBridge = {
         }
         return null;
     },
-    updateWhitelist: (whitelist: string[]) => {
-        StorageService.setWhitelist(whitelist);
-        if (AppLockModule?.setWhitelist) {
-            AppLockModule.setWhitelist(whitelist.join(','));
+    isDeviceAdminActive: async (): Promise<boolean> => {
+        if (AppLockModule?.isDeviceAdminActive) {
+            return await AppLockModule.isDeviceAdminActive();
         }
+        return false;
     },
-    updateNotificationSetting: (enabled: boolean) => {
-        StorageService.setNotificationTimerEnabled(enabled);
-        if (AppLockModule?.setNotificationEnabled) {
-            AppLockModule.setNotificationEnabled(enabled);
+    requestDeviceAdmin: () => {
+        if (AppLockModule?.requestDeviceAdmin) {
+            AppLockModule.requestDeviceAdmin();
         }
     },
     updateFloatingSetting: (enabled: boolean) => {
@@ -69,17 +68,6 @@ export const AppLockBridge = {
             AppLockModule.setFloatingPosition(position);
         }
     },
-    hasUsageStatsPermission: async (): Promise<boolean> => {
-        if (AppLockModule?.hasUsageStatsPermission) {
-            return await AppLockModule.hasUsageStatsPermission();
-        }
-        return false;
-    },
-    requestUsageStatsPermission: () => {
-        if (AppLockModule?.requestUsageStatsPermission) {
-            AppLockModule.requestUsageStatsPermission();
-        }
-    },
     hasOverlayPermission: async (): Promise<boolean> => {
         if (AppLockModule?.hasOverlayPermission) {
             return await AppLockModule.hasOverlayPermission();
@@ -91,28 +79,15 @@ export const AppLockBridge = {
             AppLockModule.requestOverlayPermission();
         }
     },
-    isDeviceAdminActive: async (): Promise<boolean> => {
-        if (AppLockModule?.isDeviceAdminActive) {
-            return await AppLockModule.isDeviceAdminActive();
-        }
-        return false;
-    },
-    requestDeviceAdmin: () => {
-        if (AppLockModule?.requestDeviceAdmin) {
-            AppLockModule.requestDeviceAdmin();
+    updateNotificationSetting: (enabled: boolean) => {
+        StorageService.setNotificationTimerEnabled(enabled);
+        if (AppLockModule?.setNotificationEnabled) {
+            AppLockModule.setNotificationEnabled(enabled);
         }
     },
-    minimizeApp: () => {
-        if (AppLockModule?.minimizeApp) {
-            AppLockModule.minimizeApp();
-        } else {
-            console.warn('Native minimizeApp not found. Rebuild required.');
+    updatePIN: async (pin: string) => {
+        if (AppLockModule?.setPIN) {
+            await AppLockModule.setPIN(pin);
         }
-    },
-    getInstalledApps: async (): Promise<AppInfo[]> => {
-        if (AppLockModule?.getInstalledApps) {
-            return await AppLockModule.getInstalledApps();
-        }
-        return [];
     },
 };

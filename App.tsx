@@ -9,8 +9,8 @@ import {
   TextInput,
   Alert,
   Modal,
-  SafeAreaView
 } from 'react-native';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppLockBridge } from './src/services/AppLockBridge';
 import { StorageService } from './src/services/StorageService';
 import HomeScreen from './src/screens/HomeScreen';
@@ -66,36 +66,40 @@ function App() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#007AFF" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </SafeAreaView>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.loadingContainer}>
+          <StatusBar barStyle="light-content" backgroundColor="#007AFF" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#007AFF" />
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#007AFF" />
 
-      {currentScreen === 'pinSetup' && (
-        <PinSetupScreen onComplete={() => {
-          setHasPin(true);
-          setCurrentScreen('home');
-        }} />
-      )}
+        {currentScreen === 'pinSetup' && (
+          <PinSetupScreen onComplete={() => {
+            setHasPin(true);
+            setCurrentScreen('home');
+          }} />
+        )}
 
-      {currentScreen === 'home' && (
-        <HomeScreen navigation={createMockNavigation(handleNavigate) as any} route={{} as any} />
-      )}
+        {currentScreen === 'home' && (
+          <HomeScreen navigation={createMockNavigation(handleNavigate) as any} route={{} as any} />
+        )}
 
-      {currentScreen === 'settings' && (
-        <SettingsScreen navigation={createMockNavigation(handleNavigate, 'Home') as any} route={{} as any} />
-      )}
+        {currentScreen === 'settings' && (
+          <SettingsScreen navigation={createMockNavigation(handleNavigate, 'Home') as any} route={{} as any} />
+        )}
 
-      {currentScreen === 'deviceAdminInstructions' && (
-        <DeviceAdminInstructions navigation={createMockNavigation(handleNavigate, 'Settings') as any} route={{} as any} />
-      )}
-    </SafeAreaView>
+        {currentScreen === 'deviceAdminInstructions' && (
+          <DeviceAdminInstructions navigation={createMockNavigation(handleNavigate, 'Settings') as any} route={{} as any} />
+        )}
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
@@ -214,6 +218,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     borderRadius: 12,
     textAlign: 'center',
+    textAlignVertical: 'center',
     paddingHorizontal: 0,
     fontSize: 24,
     marginBottom: 20,

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <ImageView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@android:drawable/ic_lock_lock"
+        android:tint="#FFFFFFFF" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="TIME'S UP!"
+        android:textColor="#FFFFFFFF"
+        android:textSize="32sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:text="This device is locked.\nPlease ask a parent to unlock."
+        android:textColor="#FFCCCCCC"
+        android:textSize="18sp" />
+
+    <LinearLayout
+        android:id="@+id/pin_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:layout_marginTop="20dp">
+        
+        <EditText
+            android:id="@+id/pin_input"
+            android:layout_width="200dp"
+            android:layout_height="50dp"
+            android:background="#33FFFFFF"
+            android:hint="Enter PIN"
+            android:textColorHint="#99FFFFFF"
+            android:textColor="#FFFFFF"
+            android:inputType="numberPassword"
+            android:gravity="center"
+            android:textAlignment="center"
+            android:maxLines="1"
+            android:padding="10dp"
+            android:maxLength="6"
+            android:textSize="20sp" />
+            
+        <Button
+            android:id="@+id/btn_verify_pin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:text="Verify"
+            android:backgroundTint="#FF007AFF" />
+            
+        <Button
+            android:id="@+id/btn_cancel_pin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="Cancel"
+            android:backgroundTint="#00000000"
+            android:textColor="#CCCCCC" />
+            
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_unlock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:backgroundTint="#FF333333"
+        android:paddingHorizontal="30dp"
+        android:paddingVertical="12dp"
+        android:text="Unlock Device"
+        android:textColor="#FFFFFFFF"
+        android:textStyle="bold" />
+
+</LinearLayout>

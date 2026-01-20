@@ -299,6 +299,7 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
+        padding: 20,
     },
     backButton: {
         flexDirection: 'row',
@@ -411,6 +412,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#F0F0F0',
         borderRadius: 10,
         textAlign: 'center',
+        textAlignVertical: 'center',
         paddingHorizontal: 0,
         fontSize: 24,
         marginBottom: 25,

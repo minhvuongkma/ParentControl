@@ -1,5 +1,6 @@
 import { MMKV } from 'react-native-mmkv';
 import * as Keychain from 'react-native-keychain';
+import { AppLockBridge } from './AppLockBridge';
 
 let storage: MMKV | null = null;
 
@@ -16,7 +17,6 @@ const getStorage = () => {
 };
 
 export const StorageKeys = {
-  WHITELIST: 'app_whitelist',
   IS_LOCKED: 'is_locked',
   HAS_PIN: 'has_pin',
   SHOW_NOTIFICATION_TIMER: 'show_notification_timer',
@@ -25,16 +25,6 @@ export const StorageKeys = {
 };
 
 export const StorageService = {
-  // Whitelist
-  getWhitelist: (): string[] => {
-    const s = getStorage();
-    const whitelist = s?.getString(StorageKeys.WHITELIST);
-    return whitelist ? JSON.parse(whitelist) : [];
-  },
-  setWhitelist: (whitelist: string[]) => {
-    getStorage()?.set(StorageKeys.WHITELIST, JSON.stringify(whitelist));
-  },
-
   // Lock Status
   setIsLocked: (isLocked: boolean) => {
     getStorage()?.set(StorageKeys.IS_LOCKED, isLocked);
@@ -48,6 +38,7 @@ export const StorageService = {
     try {
       await Keychain.setGenericPassword('parental_pin', pin, { service: 'com.parentcontrol.pin' });
       getStorage()?.set(StorageKeys.HAS_PIN, true);
+      AppLockBridge.updatePIN(pin);
     } catch (e) {
       console.error('Keychain save error:', e);
       throw e;
@@ -66,6 +57,20 @@ export const StorageService = {
   },
   hasPIN: (): boolean => {
     return getStorage()?.getBoolean(StorageKeys.HAS_PIN) || false;
+  },
+  getPIN: async (): Promise<string | null> => {
+    try {
+      const credentials = await Keychain.getGenericPassword({ service: 'com.parentcontrol.pin' });
+      if (credentials) {
+        return credentials.password;
+      }
+    } catch (e) {
+      console.error('Keychain get error:', e);
+    }
+    return null;
+  },
+  setPIN: async (pin: string) => {
+    await StorageService.savePIN(pin);
   },
 
   // UI Settings
